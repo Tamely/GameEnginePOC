@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameEnginePOC", "GameEnginePOC.csproj", "{E7E61F2C-C17D-40B3-BEC7-B677F0269FE1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameEnginePOC", "Engine/GameEnginePOC.csproj", "{E7E61F2C-C17D-40B3-BEC7-B677F0269FE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
