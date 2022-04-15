@@ -1,10 +1,15 @@
-﻿namespace GameEnginePOC.Core.Window;
+﻿using GameEnginePOC.Core.Entities;
 
-public class BaseWindow
+namespace GameEnginePOC.Core.Window;
+
+public abstract class BaseWindow
 {
     private readonly string _title;
     private readonly (int, int) _windowSize;
     private readonly (int, int, int) _backgroundColor;
+    private Thread _mainThread;
+    protected readonly Form GraphicsWindow;
+    public static List<Sprite2D> CurrentSprites = new List<Sprite2D>();
 
     protected BaseWindow(string title, (int, int) windowSize, string backgroundColor) : this(title, windowSize, HexToRgb(backgroundColor.Replace("#",""))) {}
     protected BaseWindow(string title, (int, int) windowSize) : this(title, windowSize, (0, 0, 0)) {}
@@ -23,6 +28,8 @@ public class BaseWindow
         _title = title;
         _windowSize = windowSize;
         _backgroundColor = backgroundColor;
+
+        GraphicsWindow = new Slate();
     }
 
     /// <summary>
@@ -30,13 +37,46 @@ public class BaseWindow
     /// </summary>
     protected void Start()
     {
-        var window = new Slate();
-        window.Size = new Size(_windowSize.Item1, _windowSize.Item2);
-        window.Text = _title;
-        window.BackColor = Color.FromArgb(_backgroundColor.Item1, _backgroundColor.Item2, _backgroundColor.Item3);
+        OnWindowLoad();
+        GraphicsWindow.Size = new Size(_windowSize.Item1, _windowSize.Item2);
+        GraphicsWindow.Text = _title;
+        GraphicsWindow.BackColor = Color.FromArgb(_backgroundColor.Item1, _backgroundColor.Item2, _backgroundColor.Item3);
+        GraphicsWindow.Paint += Render;
+
+        _mainThread = new Thread(MainLoop);
+        _mainThread.Start();
         
-        Application.Run(window);
+        Application.Run(GraphicsWindow);
     }
+
+    void MainLoop()
+    {
+        while (_mainThread.IsAlive)
+        {
+            OnPaint();
+            GraphicsWindow.BeginInvoke((MethodInvoker)delegate
+            {
+                GraphicsWindow.Refresh();
+            });
+            OnUpdate();
+            Thread.Sleep(1);
+        }
+    }
+
+    private void Render(object sender, PaintEventArgs e)
+    {
+        Graphics g = e.Graphics;
+        
+        g.Clear(Color.FromArgb(_backgroundColor.Item1, _backgroundColor.Item2, _backgroundColor.Item3));
+
+        foreach (var sprite in CurrentSprites)
+        {
+            g.DrawImage(sprite.GetSprite(), sprite.GetPosition().X, sprite.GetPosition().Y, sprite.GetWidth(), sprite.GetHeight());
+        }
+    }
+
+    public static void RegisterSprite(Sprite2D sprite) => CurrentSprites.Add(sprite);
+    public static void DeregisterSprite(Sprite2D sprite) => CurrentSprites.Remove(sprite);
 
     /// <summary>
     /// Converted a hexadecimal color string to RGB. DO NOT INCLUDE THE #!
@@ -50,4 +90,8 @@ public class BaseWindow
         var b = Convert.ToInt32(hex[4..6], 16);
         return (r, g, b);
     }
+
+    public abstract void OnWindowLoad();
+    public abstract void OnPaint();
+    public abstract void OnUpdate();
 }
