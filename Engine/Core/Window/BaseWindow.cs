@@ -1,4 +1,6 @@
-﻿using GameEnginePOC.Core.Entities;
+﻿using System.Numerics;
+using GameEnginePOC.Core.Entities;
+using GameEnginePOC.Utilities;
 using GLFW;
 using static GameEnginePOC.Utilities.GL;
 using Constants = GameEnginePOC.Core.Variables.Constants;
@@ -11,8 +13,8 @@ public abstract class BaseWindow
     private readonly string _title;
     private readonly (int, int) _windowSize;
     private readonly (float, float, float) _backgroundColor;
-    private Thread _mainThread;
-    protected readonly GLFW.Window GraphicsWindow;
+    private readonly GLFW.Window GraphicsWindow;
+    private readonly uint ProgramContext;
     public static List<Sprite2D> CurrentSprites = new List<Sprite2D>();
 
     protected BaseWindow(string title, (int, int) windowSize, string backgroundColor) : this(title, windowSize, HexToRgb(backgroundColor.Replace("#",""))) {}
@@ -35,9 +37,7 @@ public abstract class BaseWindow
 
         PrepareContext();
         GraphicsWindow = RenderWindow(windowSize);
-        var program = glCreateProgram();
-        
-        SetBackgroundColor(program);
+        ProgramContext = CreateProgram();
     }
 
     /// <summary>
@@ -47,15 +47,7 @@ public abstract class BaseWindow
     {
         OnWindowLoad();
 
-        _mainThread = new Thread(MainLoop);
-        _mainThread.Start();
-        
-        Render();
-    }
-
-    private long _fps = 0;
-    void MainLoop()
-    {
+        long fps = 0;
         while (!Glfw.WindowShouldClose(GraphicsWindow))
         {
             OnPaint();
@@ -64,11 +56,60 @@ public abstract class BaseWindow
 
             glClear(GL_COLOR_BUFFER_BIT);
             
-            if (_fps++ % Constants.CLIENT_FPS == 0)
+            if (fps++ % Constants.CLIENT_FPS == 0)
                 OnUpdate();
+            
+            SetBackground();
+
+            Render();
         }
         
         Glfw.Terminate();
+    }
+
+    private void SetBackground()
+    {
+        var vertices = new float[]
+        {
+            -1f, -1f, 0.0f,
+            1f, -1f, 0.0f,
+            -1f, 1f, 0.0f,
+            1f, 1f, 0.0f
+        };
+
+        DrawRect(vertices, RgbToHex(_backgroundColor.Item1, _backgroundColor.Item2, _backgroundColor.Item3));
+    }
+
+    private void DrawRect(float[] points, string Color = "FFFFFF", bool isTextured = false,
+        string texturePath = "NoTexture")
+    {
+        CreateVertices(points, out var vao, out _);
+        
+        var location = glGetUniformLocation(ProgramContext, "color");
+        var color = HexToRgb(Color);
+        SetColor(location, (color.Item1, color.Item2, color.Item3));
+        
+        
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 1, 3);
+        glBindVertexArray(0);
+    }
+
+    private static unsafe void CreateVertices(float[] vertices, out uint vao, out uint vbo)
+    {
+        vao = glGenVertexArray();
+        vbo = glGenBuffer();
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        fixed (float* v = &vertices[0])
+        {
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.Length, v, GL_STATIC_DRAW);
+        }
+        
+        glVertexAttribPointer(0u, 3, GL_FLOAT, false, 3 * sizeof(float), null);
+        glEnableVertexAttribArray(0);
     }
 
     /// <summary>
@@ -104,7 +145,7 @@ public abstract class BaseWindow
         Glfw.WindowHint(Hint.Decorated, true);
     }
 
-    private void SetBackgroundColor(uint location) => glUniform3f((int)location, _backgroundColor.Item1, _backgroundColor.Item2, _backgroundColor.Item3);
+    private void SetColor(int location, (float, float, float) RGB) => glUniform3f(location, RGB.Item1, RGB.Item2, RGB.Item3);
 
     private uint CreateProgram()
     {
@@ -164,10 +205,41 @@ public abstract class BaseWindow
     /// <returns>Triple int tuple representing RGB</returns>
     private static (float, float, float) HexToRgb(string hex)
     {
-        var r = Convert.ToInt32(hex[..2], 16);
-        var g = Convert.ToInt32(hex[2..4], 16);
-        var b = Convert.ToInt32(hex[4..6], 16);
+        var r = Convert.ToInt32(hex[..2], 16) / 255f;
+        var g = Convert.ToInt32(hex[2..4], 16) / 255f;
+        var b = Convert.ToInt32(hex[4..6], 16) / 255f;
         return (r, g, b);
+    }
+    
+    
+    /// <summary>
+    /// RGB to hexadecimal color string. DOES NOT INCLUDE THE #!
+    /// </summary>
+    /// <param name="r">Float representing the Red value</param>
+    /// <param name="g">Float representing the Green value</param>
+    /// <param name="b">Float representing the Blue value</param>
+    /// <returns>String representing hexadecimal color</returns>
+    private static string RgbToHex(float r, float g, float b)
+    {
+        var rHex = Convert.ToInt32(r * 255).ToString("X2");
+        var gHex = Convert.ToInt32(g * 255).ToString("X2");
+        var bHex = Convert.ToInt32(b * 255).ToString("X2");
+        return $"{rHex}{gHex}{bHex}";
+    }
+    
+    /// <summary>
+    /// RGB to hexadecimal color string. DOES NOT INCLUDE THE #!
+    /// </summary>
+    /// <param name="r">Int representing the Red value</param>
+    /// <param name="g">Int representing the Green value</param>
+    /// <param name="b">Int representing the Blue value</param>
+    /// <returns>String representing hexadecimal color</returns>
+    private static string RgbToHex(int r, int g, int b)
+    {
+        var rHex = Convert.ToInt32(r).ToString("X2");
+        var gHex = Convert.ToInt32(g).ToString("X2");
+        var bHex = Convert.ToInt32(b).ToString("X2");
+        return $"{rHex}{gHex}{bHex}";
     }
 
     public abstract void OnWindowLoad();
