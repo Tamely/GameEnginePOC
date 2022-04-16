@@ -15,7 +15,7 @@ public class GameWindow : BaseWindow
 
     public override void OnWindowLoad()
     {
-        GraphicsWindow.KeyDown += CheckMovement;
+        //GraphicsWindow.KeyDown += CheckMovement;
 
         new GridSystem((800, 500));
         
@@ -52,7 +52,9 @@ public class GameWindow : BaseWindow
         }
     }
     
+    int fps = 0;
     public override void OnUpdate()
     {
+        Console.WriteLine(fps++);
     }
 }
