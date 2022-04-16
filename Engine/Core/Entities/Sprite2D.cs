@@ -31,7 +31,9 @@ public class Sprite2D
 
     public Vector2 GetPosition() => Position;
     
-    public void UpdateSprite(string newSpritePath) => SpritePath = newSpritePath;
+    public string GetSpritePath() => SpritePath;
+    public void UpdateSpritePath(string newSpritePath) => SpritePath = newSpritePath;
+    
     public Bitmap GetSprite() => Sprite;
     
     public void SetHeight(int height) => Height = height;

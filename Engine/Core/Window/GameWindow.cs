@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using GameEnginePOC.Core.Engine;
 using GameEnginePOC.Core.Entities;
 
 namespace GameEnginePOC.Core.Window;
@@ -15,6 +16,9 @@ public class GameWindow : BaseWindow
     public override void OnWindowLoad()
     {
         GraphicsWindow.KeyDown += CheckMovement;
+
+        new GridSystem((800, 500));
+        
         _player = new Sprite2D("MainPlayer.png", 10, 10, new Vector2(10, 10));
     }
 
