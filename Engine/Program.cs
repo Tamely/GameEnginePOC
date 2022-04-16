@@ -7,6 +7,6 @@ public class Program
     public static void Main(string[] args)
     {
         Console.WriteLine("Initialized the console.");
-        BaseWindow window = new GameWindow();
+        BaseWindow window = new EngineWindow("#FFFFFF");
     }
 }
